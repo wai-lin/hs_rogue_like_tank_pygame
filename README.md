@@ -2,13 +2,14 @@
   - [x] 4 directions
   - [x] diagonal movement
   - [x] face to initial direction while moving diagonally
+  - [x] tanks collide each other
 - [x] Tank shoot bullet
   - [x] change direction according to tank direction
   - [x] bullet hit tanks
-- [ ] Tank health system
+- [x] Tank health system
   - [x] health scoring
-  - [ ] health bar
-  - [ ] change tank death assets
+  - [x] health bar
+  - [x] change tank death assets
 - [ ] Map
   - [x] map boundary on edges
   - [ ] generate random tile map

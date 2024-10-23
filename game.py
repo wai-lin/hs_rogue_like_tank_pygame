@@ -30,6 +30,7 @@ BULLET_DIRECTION = {
 
 TANK = {
     "asset": "assets/PNG/Retina/tank_dark.png",
+    "death_asset": "assets/PNG/Retina/tankBody_dark_outline.png",
     "size": (42, 46),
 }
 
@@ -85,17 +86,30 @@ class Bullet:
 
 
 class Tank:
-    def __init__(self, x: float, y: float, bullet=Bullet, reload_time=500, asset: str=TANK["asset"], health: int=6, bullet_asset: str=BULLET["asset"]) -> None:
+    def __init__(
+            self,
+            x: float,
+            y: float,
+            bullet=Bullet,
+            reload_time=500,
+            asset: str=TANK["asset"],
+            death_asset: str=TANK["asset"],
+            health: int=6,
+            bullet_asset: str=BULLET["asset"],
+        ) -> None:
         self.x = x
         self.y = y
         self.speed = 2
         self.direction = "UP"
         self.initial_direction = None
         self.health = health
+        self.is_alive = True
 
-        self.img = pygame.image.load(asset)
+        self.asset = asset
+        self.death_asset = death_asset
+        self.img = pygame.image.load(self.asset)
         self.img = pygame.transform.scale(self.img, TANK["size"])
-        self.rect = self.img.get_rect(center=(400, 300))
+        self.rect = self.img.get_rect(topleft=(self.x, self.y))
 
         self.bullet_asset = bullet_asset
         self.bullet = bullet
@@ -104,8 +118,18 @@ class Tank:
         self.bullet_speed = 6
         self.cooldown = reload_time
 
-    def move_on_keypress(self, keys: pygame.key.ScancodeWrapper) -> None:
-        """Movement handler for keys input."""
+    def check_tank_collision(self, new_rect: pygame.Rect, tanks_list: list["Tank"]) -> bool:
+        """Check if tank's position will collide with other tanks."""
+        for tank in tanks_list:
+            if tank != self and self.is_alive and new_rect.colliderect(tank.rect):
+                return True
+        return False
+
+    def move_on_keypress(self, keys: pygame.key.ScancodeWrapper, tanks_list: list["Tank"]) -> None:
+        """Movement handler for keys input, check tanks collisions."""
+        if not self.is_alive:
+            return
+
         # initial movement variables
         move_x, move_y = 0, 0
 
@@ -144,18 +168,27 @@ class Tank:
             move_x /= math.sqrt(2)
             move_y /= math.sqrt(2)
 
-        # restrict movement to screen boundries
-        screen_width, screen_height = GAME["screen_size"]
-
-        # check horizonal boundries
         new_x_pos = self.x + move_x
-        if 0 <= new_x_pos <= screen_width - self.rect.width:
-            self.x = new_x_pos
-
-        # check vertical boundries
         new_y_pos = self.y + move_y
-        if 0 <= new_y_pos <= screen_height - self.rect.height:
-            self.y += move_y
+
+        new_rect = self.rect.copy()
+        new_rect.x = int(new_x_pos)
+        new_rect.y = int(new_y_pos)
+
+        if not self.check_tank_collision(new_rect, tanks_list):
+            # restrict movement to screen boundries
+            screen_width, screen_height = GAME["screen_size"]
+
+            # check horizonal boundries
+            if 0 <= new_x_pos <= screen_width - self.rect.width:
+                self.x = new_x_pos
+
+            # check vertical boundries
+            if 0 <= new_y_pos <= screen_height - self.rect.height:
+                self.y += move_y
+
+            # Update the tank's rectangle to match its new position
+            self.rect.topleft = (int(self.x), int(self.y))
 
         # reset starting direction if no key pressed
         if not keys[pygame.K_UP] and not keys[pygame.K_DOWN] and not keys[pygame.K_LEFT] and not keys[pygame.K_RIGHT]:
@@ -163,6 +196,8 @@ class Tank:
 
     def move(self, direction: str) -> None:
         """Move tank according to key press direction."""
+        if self.health <= 0:
+            return
         self.direction = direction
         rad_angle = math.radians(TANK_DIRECTION[direction])
         self.x += self.speed * math.sin(rad_angle)
@@ -170,6 +205,8 @@ class Tank:
 
     def can_shoot(self) -> bool:
         """Restrict bullets from shooting continuously by setting bullet reload cooldown."""
+        if not self.is_alive:
+            return False
         current_time = pygame.time.get_ticks()
         if current_time - self.last_shot_time >= self.cooldown:
             return True
@@ -217,13 +254,32 @@ class Tank:
 
                 if bullet_rect.colliderect(tank_rect):
                     self.bullets.remove(bullet)
-                    print(f"Hit tank at position x:{tank.x}, y:{tank.y}")
                     tank.health -= 1
-                    print(f"Tank health {tank.health}")
                     if tank.health <= 0:
-                        print(f"Tank destroyed: {tank}")
-                        tanks_list.remove(tank)
+                        tank.is_alive = False
+                        tank.img = pygame.image.load(tank.death_asset)
+                        tank.img = pygame.transform.scale(tank.img, TANK["size"])
+                        tank.img = pygame.transform.rotate(tank.img, TANK_DIRECTION[tank.direction])
                     break
+
+    def draw_health_bar(self, screen: pygame.Surface) -> None:
+        """Draw the health bar with six boxes above the tank."""
+        bar_width = 8
+        bar_height = 8
+        spacing = 2
+        bar_x = self.x - (self.rect.width // 2) + (3 * (bar_width + spacing)) // 2  # center the bar above the tank
+        bar_y = self.y - 20  # position above the tank
+
+        fill_color = (239, 68, 68) # red
+        outline_color = (15, 23, 42) # dark blue
+
+        # draw the health boxes
+        for i in range(self.health):
+            box_rect = (bar_x + i * (bar_width + spacing), bar_y, bar_width, bar_height)
+            # health box
+            pygame.draw.rect(screen, fill_color, box_rect)
+            # health outline box
+            pygame.draw.rect(screen, outline_color, box_rect, 2)
 
     def draw(self, screen: pygame.Surface) -> None:
         """Paint the Tank and Bullets"""
@@ -233,16 +289,15 @@ class Tank:
         rotated_rect = rotated_img.get_rect(center=center)
         screen.blit(rotated_img, rotated_rect.topleft)
 
-        # display health above tank
-        font = pygame.font.SysFont("BlexMono Nerd Font", 16)
-        health_text = font.render(f"HP: {self.health}", True, (255, 0, 0))
-        screen.blit(health_text, (self.x, self.y - 20))
+        if self.is_alive:
+            # display health bar above tank
+            self.draw_health_bar(screen)
 
-        # draw bullets
-        self.update_bullets()
-        for bullet in self.bullets:
-            bullet.move()
-            bullet.draw(screen)
+            # draw bullets
+            self.update_bullets()
+            for bullet in self.bullets:
+                bullet.move()
+                bullet.draw(screen)
 
 
 # setup the game
@@ -254,30 +309,37 @@ clock = pygame.time.Clock()
 tile = Tile()
 player = Tank(
         x=300,
-        y=400,
+        y=200,
         asset="assets/PNG/Retina/tank_green.png",
+        death_asset="assets/PNG/Retina/tankBody_green_outline.png",
         bullet_asset="assets/PNG/Retina/bulletGreen1_outline.png",
     )
 enemy_1 = Tank(
         x=100,
         y=50,
         asset="assets/PNG/Retina/tank_red.png",
+        death_asset="assets/PNG/Retina/tankBody_red_outline.png",
         bullet_asset="assets/PNG/Retina/bulletRed1_outline.png",
     )
 enemy_2 = Tank(
         x=200,
         y=50,
         asset="assets/PNG/Retina/tank_blue.png",
+        death_asset="assets/PNG/Retina/tankBody_blue_outline.png",
         bullet_asset="assets/PNG/Retina/bulletBlue1_outline.png",
     )
 enemy_3 = Tank(
         x=300,
         y=50,
         asset="assets/PNG/Retina/tank_sand.png",
+        death_asset="assets/PNG/Retina/tankBody_sand_outline.png",
         bullet_asset="assets/PNG/Retina/bulletSand1.png",
     )
 
-all_tanks = [player, enemy_1, enemy_2, enemy_3]
+all_tanks = [enemy_1, enemy_2, player, enemy_3]
+
+def sort_alive_tanks_on_last(t: "Tank"):
+    return t.is_alive
 
 # game loop
 RUNNING = True
@@ -292,7 +354,7 @@ while RUNNING:
     """
     Player actions
     """
-    player.move_on_keypress(keys)
+    player.move_on_keypress(keys, all_tanks)
     if keys[pygame.K_SPACE]:
         player.shoot()
     player.check_bullet_collision(all_tanks)
@@ -306,10 +368,9 @@ while RUNNING:
     tile.draw_tiles(screen, 20, 25)
 
     # draw the tank and bullets
-    player.draw(screen)
-    enemy_1.draw(screen)
-    enemy_2.draw(screen)
-    enemy_3.draw(screen)
+    all_tanks.sort(key=sort_alive_tanks_on_last) # show the alive tanks on top of the dead tanks
+    for tank in all_tanks:
+        tank.draw(screen)
 
     """
     Wrap-Ups
