@@ -1,0 +1,22 @@
+- [x] Tank movement
+  - [x] 4 directions
+  - [x] diagonal movement
+  - [x] face to initial direction while moving diagonally
+- [x] Tank shoot bullet
+  - [x] change direction according to tank direction
+  - [x] bullet hit tanks
+- [ ] Tank health system
+  - [x] health scoring
+  - [ ] health bar
+  - [ ] change tank death assets
+- [ ] Map
+  - [x] map boundary on edges
+  - [ ] generate random tile map
+  - [ ] place obsticles, building
+  - [ ] obsticles can be damaged
+- [ ] Multiplayer
+  - [ ] web-socket
+  - [ ] 4 players max
+  - [ ] enter lobby with unique lobby number
+- [ ] Bot
+  - [ ] enemy bot players

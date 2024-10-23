@@ -9,7 +9,7 @@ from tile import Tile
 
 # game config
 GAME = {
-    "screen_size": (800, 640),
+    "screen_size": (64 * 15, 64 * 10),
     "background": (0, 0, 0),
 }
 
@@ -32,32 +32,28 @@ while RUNNING:
     # handle keypress
     keys = pygame.key.get_pressed()
 
-    # move on arrows
-    if keys[pygame.K_LEFT]:
-        player.move("LEFT")
-    if keys[pygame.K_RIGHT]:
-        player.move("RIGHT")
-    if keys[pygame.K_UP]:
-        player.move("UP")
-    if keys[pygame.K_DOWN]:
-        player.move("DOWN")
-
-    # shoot on spacebar
+    """
+    Player actions
+    """
+    player.move_on_keypress(keys)
     if keys[pygame.K_SPACE]:
         player.shoot()
 
+    """
+    Map painting
+    """
     # fill background color
     screen.fill(GAME["background"])
-
     # draw tiles
     tile.draw_tiles(screen, 20, 25)
-
     # draw the tank and bullets
     player.draw(screen)
 
+    """
+    Wrap-Ups
+    """
     # update the display
     pygame.display.flip()
-
     # cap the fps at 60
     clock.tick(60)
 

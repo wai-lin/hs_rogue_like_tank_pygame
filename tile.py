@@ -5,13 +5,8 @@ import pygame
 
 TILE = {
     "asset": "assets/PNG/Retina/tileSand1.png",
-    "size": (32, 32),
+    "size": (64, 64),
 }
-
-tile = [
-    [0, 1, 0, 0, 1, 0],
-    [0, 1, 0, 0, 1, 0],
-]
 
 class Tile:
     def __init__(self, asset=TILE["asset"]) -> None:

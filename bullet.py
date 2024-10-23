@@ -1,22 +1,32 @@
 """
 Bullet object
 """
+
 import pygame
 
 BULLET = {
     "asset": "assets/PNG/Retina/bulletDark1.png",
-    "size": (10, 10)
+    "size": (8, 20)
+}
+
+DIRECTION = {
+    "UP": 0,
+    "LEFT": 90,
+    "DOWN": 180,
+    "RIGHT": 270,
 }
 
 class Bullet:
-    def __init__(self, x: int, y: int, direction: str, asset: str=BULLET["asset"]) -> None:
+    def __init__(self, x: float, y: float, direction: str, asset: str=BULLET["asset"]) -> None:
         self.x = x
         self.y = y
         self.speed_x = 0
         self.speed_y = 0
         self.speed = 6
+
         self.img = pygame.image.load(asset)
         self.img = pygame.transform.scale(self.img, BULLET["size"])
+        self.img = pygame.transform.rotate(self.img, DIRECTION[direction])
 
         if direction == "UP":
             self.speed_y = -6
