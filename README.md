@@ -1,8 +1,9 @@
-- [x] Tank movement
+- [ ] Tank movement
   - [x] 4 directions
   - [x] diagonal movement
   - [x] face to initial direction while moving diagonally
   - [x] tanks collide each other
+  - [ ] tanks leave out trails for 3s
 - [x] Tank shoot bullet
   - [x] change direction according to tank direction
   - [x] bullet hit tanks
