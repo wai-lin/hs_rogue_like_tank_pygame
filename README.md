@@ -3,7 +3,7 @@
   - [x] diagonal movement
   - [x] face to initial direction while moving diagonally
   - [x] tanks collide each other
-  - [ ] tanks leave out trails for 3s
+  - [ ] tanks leave out trails for 3s don't render the trail while the tank is not moving
 - [x] Tank shoot bullet
   - [x] change direction according to tank direction
   - [x] bullet hit tanks
@@ -13,7 +13,7 @@
   - [x] change tank death assets
 - [ ] Map
   - [x] map boundary on edges
-  - [ ] generate random tile map
+  - [x] generate fixed tile map
   - [ ] place obsticles, building
   - [ ] obsticles can be damaged
 - [ ] Multiplayer

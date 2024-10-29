@@ -3,11 +3,9 @@ Tank game
 """
 
 import math
-import random
 import pygame
 
-from enum import Enum
-from typing import Tuple, List, Dict, Set
+from typing import List
 
 # game config
 GAME = {
@@ -93,150 +91,29 @@ TILE = {
     "size": (64, 64),
 }
 
-class Direction(Enum):
-    NORTH = (0, -1)
-    EAST = (1, 0)
-    SOUTH = (0, 1)
-    WEST = (-1, 0)
+MAP = [
+    ["grass_1", "grass_2", "grass_road_SplitE", "grass_road_East", "grass_road_East", "grass_road_East", "grass_road_TransitionE", "sand_road_CornerLL", "sand_1", "sand_2", "sand_1", "sand_2", "sand_road_North", "sand_2", "sand_1"],
+    ["grass_1", "grass_2", "grass_road_North", "grass_2", "grass_1", "grass_2", "grass_transitionE", "sand_road_CornerUR", "sand_road_CornerLL", "sand_2", "sand_1", "sand_2", "sand_road_SplitE", "sand_road_East", "sand_road_East"],
+    ["grass_1", "grass_2", "grass_road_North", "grass_2", "grass_1", "grass_2", "grass_transitionE", "sand_2", "sand_road_North", "sand_2", "sand_1", "sand_2", "sand_road_North", "sand_2", "sand_1"],
+    ["grass_1", "grass_2", "grass_road_North", "grass_2", "grass_1", "grass_2", "grass_transitionE", "sand_2", "sand_road_North", "sand_2", "sand_1", "sand_2", "sand_road_North", "sand_2", "sand_1"],
+    ["grass_road_East", "grass_road_East", "grass_road_Crossing", "grass_road_East", "grass_road_CornerLL", "grass_2", "grass_transitionE", "sand_2", "sand_road_North", "sand_2", "sand_1", "sand_2", "sand_road_North", "sand_2", "sand_1"],
+    ["grass_1", "grass_2", "grass_road_North", "grass_2", "grass_road_North", "grass_2", "grass_transitionE", "sand_2", "sand_road_CornerUR", "sand_road_East", "sand_road_East", "sand_road_East", "sand_road_CornerUL", "sand_2", "sand_1"],
+    ["grass_1", "grass_2", "grass_road_North", "grass_2", "grass_road_North", "grass_2", "grass_transitionE", "sand_2", "sand_1", "sand_2", "sand_1", "sand_2", "sand_1", "sand_2", "sand_1"],
+    ["grass_1", "grass_2", "grass_road_North", "grass_2", "grass_road_North", "grass_2", "grass_transitionE", "sand_2", "sand_1", "sand_2", "sand_road_CornerLR", "sand_road_East", "sand_road_East", "sand_road_East", "sand_road_East"],
+    ["grass_1", "grass_2", "grass_road_CornerUR", "grass_road_East", "grass_road_SplitN", "grass_road_East", "grass_road_TransitionE", "sand_road_East", "sand_road_East", "sand_road_East", "sand_road_CornerUL", "sand_2", "sand_1", "sand_2", "sand_1"],
+    ["grass_1", "grass_2", "grass_1", "grass_2", "grass_1", "grass_2", "grass_transitionE", "sand_2", "sand_1", "sand_2", "sand_1", "sand_2", "sand_1", "sand_2", "sand_1"],
+]
 
-class MapTile:
-    def __init__(self, tile_type: str) -> None:
-        self.tile_type = tile_type
-        self.img: None | pygame.Surface = None
-        self.roads: Set[Direction] = set()
-
-class RoadMap:
-    def __init__(self, rows: int, cols: int) -> None:
-        self.rows = rows
-        self.cols = cols
-        self.tiles: List[List[MapTile]] = []
-        self.tile_images: Dict[str, pygame.Surface] = {}
-        self.load_tiles()
-
-    def load_tiles(self) -> None:
-        """Load all necessary tile images."""
-        base_path = "assets/imgs/tiles/"
-
-        for tile_name, tile_file in TILES.items():
-            if any(prefix in tile_name for prefix in ["grass", "road"]):
-                try:
-                    img = pygame.image.load(f"{base_path}{tile_file}")
-                    self.tile_images[tile_name] = pygame.transform.scale(img, TILE["size"])
-                except pygame.error as e:
-                    print(f"Warning: Could not load tile asset for {tile_name}: {e}")
-
-    def init_empty_map(self) -> None:
-        """Initialize empty map with grass tiles."""
-        self.tiles = []
-
-        for _ in range(self.rows):
-            tile_row = []
-            for _ in range(self.cols):
-                tile = MapTile("grass_1")
-                tile.img = self.tile_images["grass_1"]
-                tile_row.append(tile)
-            self.tiles.append(tile_row)
-
-    def is_valid_position(self, row: int, col: int) -> bool:
-        """Check if position is within screen boundries."""
-        return 0 <= row < self.rows and 0 <= col < self.cols
-
-    def generate_road_network(self) -> None:
-        """Generate main road"""
-        num_horizontal = random.randint(1, 2)
-        num_vertical = random.randint(1, 2)
-
-        # generate horizonal roads
-        used_rows = set()
-        for _ in range(num_horizontal):
-            row = random.randint(2, self.rows - 3)
-            while row in used_rows or row - 1 in used_rows or row + 1 in used_rows:
-                row = random.randint(2, self.rows - 3)
-            used_rows.add(row)
-
-            for col in range(self.cols):
-                self.tiles[row][col].roads.add(Direction.EAST)
-                self.tiles[row][col].roads.add(Direction.WEST)
-
-        # generate vertical roads
-        used_cols = set()
-        for _ in range(num_vertical):
-            col = random.randint(2, self.cols - 3)
-            while col in used_cols or col - 1 in used_cols or col + 1 in used_cols:
-                col = random.randint(2, self.cols - 3)
-            used_cols.add(col)
-
-            for row in range(self.rows):
-                self.tiles[row][col].roads.add(Direction.NORTH)
-                self.tiles[row][col].roads.add(Direction.SOUTH)
-
-    def get_tile_type(self, roads: Set[Direction]) -> str:
-        """Determine appropiate tile type based on road connections"""
-        if not roads:
-            return random.choice(["grass_1", "grass_2"])
-
-        # convert road directions to a pattern
-        has_north = Direction.NORTH in roads
-        has_south = Direction.SOUTH in roads
-        has_east = Direction.EAST in roads
-        has_west = Direction.WEST in roads
-
-        # straight roads
-        if has_north and has_south and not has_east and not has_west:
-            return "grass_road_North"
-        if has_east and has_west and not has_north and not has_south:
-            return "grass_road_East"
-
-        # corner roads
-        if has_south and has_east and not has_north and not has_west:
-            return "grass_road_CornerUL"
-        if has_south and has_west and not has_north and not has_east:
-            return "grass_road_CornerUR"
-        if has_north and has_east and not has_south and not has_west:
-            return "grass_road_CornerLL"
-        if has_north and has_west and not has_south and not has_east:
-            return "grass_road_CornerLR"
-
-        # crossings
-        if has_north and has_south and has_east and has_west:
-            return "grass_road_Crossing"
-
-        # T-junctions
-        if has_north and has_south and has_east and not has_west:
-            return "grass_road_SplitW"
-        if has_north and has_south and not has_east and has_west:
-            return "grass_road_SplitE"
-        if has_north and not has_south and has_east and has_west:
-            return "grass_road_SplitS"
-        if not has_north and has_south and has_east and has_west:
-            return "grass_road_SplitN"
-
-        return "grass_1"
-    
-    def apply_tile_graphics(self) -> None:
-        """Apply appropriate tile image based on road connections."""
-        for row in range(self.rows):
-            for col in range(self.cols):
-                tile = self.tiles[row][col]
-                tile.tile_type = self.get_tile_type(tile.roads)
-                tile.img = self.tile_images[tile.tile_type]
-
-    def generate_map(self) -> None:
-        """Generate complete map with roads and appropriate tiles."""
-        self.init_empty_map()
-        self.generate_road_network()
-        self.apply_tile_graphics()
-
-    def draw(self, screen: pygame.Surface) -> None:
-        """Draw the complete map."""
-        for row in range(self.rows):
-            for col in range(self.cols):
-                tile = self.tiles[row][col]
-                x = col * TILE["size"][0]
-                y = row * TILE["size"][1]
-                if tile.img is None:
-                    raise ValueError(f"Tile `{tile.tile_type}` could not be loaded.")
-                screen.blit(tile.img, (x, y))
+def draw_map(screen: pygame.Surface) -> None:
+    for row in range(len(MAP)):
+        for col in range(len(MAP[row])):
+            tile_type = MAP[row][col]
+            tile_asset = TILES[tile_type]
+            img = pygame.image.load(f"assets/imgs/tiles/{tile_asset}")
+            img = pygame.transform.scale(img, TILE["size"])
+            pos_x = col * TILE["size"][0]
+            pos_y = row * TILE["size"][1]
+            screen.blit(img, (pos_x, pos_y))
 
 
 class Bullet:
@@ -489,8 +366,6 @@ screen = pygame.display.set_mode(GAME["screen_size"])
 clock = pygame.time.Clock()
 
 # objects
-game_map = RoadMap(cols=15, rows=10)
-game_map.generate_map()
 player = Tank(
         x=300,
         y=200,
@@ -549,7 +424,7 @@ while RUNNING:
     # fill background color
     screen.fill(GAME["background"])
     # draw map
-    game_map.draw(screen)
+    draw_map(screen)
 
     # draw the tank and bullets
     all_tanks.sort(key=sort_alive_tanks_on_last) # show the alive tanks on top of the dead tanks
