@@ -486,9 +486,13 @@ def save_high_scores(new_score: float):
         json.dump({"high_scores": high_scores}, file, indent=4)
 
 def get_best_high_score(high_scores: HighScores) -> HighScoreEntry:
-    return min(high_scores, key=lambda entry: entry["score"]) if high_scores else { "score": 0.0, "timestamp": "" }
+    """Get highest score from high scores and return default if empty."""
+    if high_scores:
+        return min(high_scores, key=lambda entry: entry["score"])
+    return { "score": 0.0, "timestamp": "" }
 
 def draw_text_with_outline(text: str, font: Font, color: Tuple[int, int, int], outline_color: Tuple[int, int, int], position: Tuple[int, int]):
+    """Text with outline renderer."""
     outline_positions = [
         (position[0] - 1, position[1] - 1),
         (position[0] + 1, position[1] - 1),
@@ -500,6 +504,52 @@ def draw_text_with_outline(text: str, font: Font, color: Tuple[int, int, int], o
         screen.blit(outline_surface, pos)
     text_surface = font.render(text, True, color)
     screen.blit(text_surface, position)
+
+def generate_bots():
+    """Generate bots that are not on top of each other."""
+    bots_count: int = random.choice(GAME["bot_counts"])
+
+    x_coords = (100, 900)
+    y_coords = (100, 500)
+    coordinates: List[Tuple[int, int]] = []
+
+    bot_tanks: List[BotTank] = []
+
+    for _ in range(bots_count):
+        x = random.randint(x_coords[0], x_coords[1])
+        y = random.randint(y_coords[0], y_coords[1])
+        new_rect = pygame.Rect(x, y, TANK["enemy_size"][0], TANK["enemy_size"][1])
+
+        attempt = 0
+        max_attempts = 50  # limit the number of attempts to find a non-overlapping position
+        while attempt < max_attempts:
+            is_colliding_with_tanks = any(
+                    new_rect.colliderect(
+                        pygame.Rect(cx, cy, TANK["enemy_size"][0], TANK["enemy_size"][1])
+                    ) for cx, cy in coordinates
+                )
+
+            if not is_colliding_with_tanks:
+                    coordinates.append((x, y))
+                    break
+            attempt += 1
+
+        if attempt == max_attempts:
+            x = random.randint(x_coords[0], x_coords[1])
+            y = random.randint(y_coords[0], y_coords[1])
+            new_rect = pygame.Rect(x, y, TANK["enemy_size"][0], TANK["enemy_size"][1])
+
+        bot = BotTank(
+            x=x,
+            y=y,
+            health=1,
+            asset="assets/imgs/tanks/tank_red.png",
+            death_asset="assets/imgs/tanks/tank_red_body.png",
+            movement_interval=random.choice(GAME["bot_intervals"]),
+        )
+        bot_tanks.append(bot)
+
+    return bot_tanks
 
 # setup the game
 pygame.init()
@@ -518,24 +568,9 @@ player = Tank(
     bullet_asset="assets/imgs/tanks/bullet_green.png",
     reload_time=300,
 )
-bot_tanks: List["BotTank"] = []
-for t in range(random.choice(GAME["bot_counts"])):
-    bot = BotTank(
-            x=random.randint(100, 900),
-            y=random.randint(100, 500),
-            health=1,
-            asset="assets/imgs/tanks/tank_red.png",
-            death_asset="assets/imgs/tanks/tank_red_body.png",
-            movement_interval=random.choice(GAME["bot_intervals"]),
-        )
-    bot_tanks.append(bot)
-
+bot_tanks: List["BotTank"] = generate_bots()
 all_tanks: List[Union["Tank", "BotTank"]] = [player]
 all_tanks.extend(bot_tanks)
-
-
-def sort_alive_tanks_on_last(t: Union["Tank", "BotTank"]):
-    return t.is_alive
 
 def is_player_won(bot_tanks: List[BotTank]):
     return all(not bot.is_alive for bot in bot_tanks)
@@ -574,9 +609,7 @@ while RUNNING:
     # draw map
     draw_map(screen)
 
-    # draw the tank and bullets
-    # show the alive tanks on top of the dead tanks
-    all_tanks.sort(key=sort_alive_tanks_on_last)
+    # draw the tanks and bullets
     for tank in all_tanks:
         if isinstance(tank, BotTank):
             tank.update_movement(all_tanks)
@@ -617,7 +650,6 @@ while RUNNING:
             formatted_timestamp = timestamp.strftime("%d-%m-%Y %I:%M %p") # Format to "DD-MM-YYYY HH:MM AM/PM"
 
             high_score_text = f"#{i+1} {formatted_timestamp}: {high_score['score']:.2f} seconds"
-            high_score_surface = text_font.render(high_score_text, True, (0, 0, 128))
             draw_text_with_outline(
                     text=high_score_text,
                     font=text_font,
