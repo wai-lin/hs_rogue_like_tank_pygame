@@ -3,9 +3,8 @@ Tank game
 """
 
 import math
-from os import curdir
 import random
-from typing import List
+from typing import List, Union
 import pygame
 
 
@@ -31,6 +30,7 @@ TANK = {
     "asset": "assets/imgs/tanks/tank_dark.png",
     "death_asset": "assets/imgs/tanks/tank_dark_body.png",
     "size": (42, 46),
+    "enemy_size": (31, 33),
 }
 
 TANK_DIRECTION = {
@@ -199,14 +199,14 @@ class Tank:
         self.bullet_speed = 6
         self.cooldown = reload_time
 
-    def check_tank_collision(self, new_rect: pygame.Rect, tanks_list: List["Tank"]) -> bool:
+    def is_colliding_tank(self, new_rect: pygame.Rect, tanks_list: List[Union["Tank", "BotTank"]]) -> bool:
         """Check if tank's position will collide with other tanks."""
         for tank in tanks_list:
             if tank != self and self.is_alive and new_rect.colliderect(tank.rect):
                 return True
         return False
 
-    def move_on_keypress(self, keys: pygame.key.ScancodeWrapper, tanks_list: List["Tank"]) -> None:
+    def move_on_keypress(self, keys: pygame.key.ScancodeWrapper, tanks_list: List[Union["Tank", "BotTank"]]) -> None:
         """Movement handler for keys input, check tanks collisions."""
         if not self.is_alive:
             return
@@ -214,40 +214,19 @@ class Tank:
         # initial movement variables
         move_x, move_y = 0, 0
 
-        if self.initial_direction is None:
-            if keys[pygame.K_LEFT]:
-                self.initial_direction = "LEFT"
-            if keys[pygame.K_RIGHT]:
-                self.initial_direction = "RIGHT"
-            if keys[pygame.K_UP]:
-                self.initial_direction = "UP"
-            if keys[pygame.K_DOWN]:
-                self.initial_direction = "DOWN"
-
-        # horizontal movements
-        if keys[pygame.K_LEFT] and not keys[pygame.K_RIGHT]:
+        # Only one direction will be chosen based on priority order (LEFT > RIGHT > UP > DOWN)
+        if keys[pygame.K_LEFT] or keys[pygame.K_a]:
             move_x = -self.speed
-            if self.initial_direction == "LEFT":
-                self.direction = "LEFT"
-        if keys[pygame.K_RIGHT] and not keys[pygame.K_LEFT]:
+            self.direction = "LEFT"
+        elif keys[pygame.K_RIGHT] or keys[pygame.K_d]:
             move_x = self.speed
-            if self.initial_direction == "RIGHT":
-                self.direction = "RIGHT"
-
-        # vertical movements
-        if keys[pygame.K_UP] and not keys[pygame.K_DOWN]:
+            self.direction = "RIGHT"
+        elif keys[pygame.K_UP] or keys[pygame.K_w]:
             move_y = -self.speed
-            if self.initial_direction == "UP":
-                self.direction = "UP"
-        if keys[pygame.K_DOWN] and not keys[pygame.K_UP]:
+            self.direction = "UP"
+        elif keys[pygame.K_DOWN] or keys[pygame.K_s]:
             move_y = self.speed
-            if self.initial_direction == "DOWN":
-                self.direction = "DOWN"
-
-        # normalize movements
-        if move_x != 0 and move_y != 0:
-            move_x /= math.sqrt(2)
-            move_y /= math.sqrt(2)
+            self.direction = "DOWN"
 
         new_x_pos = self.x + move_x
         new_y_pos = self.y + move_y
@@ -256,33 +235,20 @@ class Tank:
         new_rect.x = int(new_x_pos)
         new_rect.y = int(new_y_pos)
 
-        if not self.check_tank_collision(new_rect, tanks_list):
-            # restrict movement to screen boundries
+        if not self.is_colliding_tank(new_rect, tanks_list):
+            # restrict movement to screen boundaries
             screen_width, screen_height = GAME["screen_size"]
 
-            # check horizonal boundries
+            # check horizontal boundaries
             if 0 <= new_x_pos <= screen_width - self.rect.width:
                 self.x = new_x_pos
 
-            # check vertical boundries
+            # check vertical boundaries
             if 0 <= new_y_pos <= screen_height - self.rect.height:
-                self.y += move_y
+                self.y = new_y_pos
 
             # Update the tank's rectangle to match its new position
             self.rect.topleft = (int(self.x), int(self.y))
-
-        # reset starting direction if no key pressed
-        if not keys[pygame.K_UP] and not keys[pygame.K_DOWN] and not keys[pygame.K_LEFT] and not keys[pygame.K_RIGHT]:
-            self.initial_direction = None
-
-    def move(self, direction: str) -> None:
-        """Move tank according to key press direction."""
-        if self.health <= 0:
-            return
-        self.direction = direction
-        rad_angle = math.radians(TANK_DIRECTION[direction])
-        self.x += self.speed * math.sin(rad_angle)
-        self.y += self.speed * math.cos(rad_angle)
 
     def can_shoot(self) -> bool:
         """Restrict bullets from shooting continuously by setting bullet reload cooldown."""
@@ -323,7 +289,7 @@ class Tank:
         """Remove bullets that're out of screen"""
         self.bullets = [bullet for bullet in self.bullets if bullet.y > 0]
 
-    def check_bullet_collision(self, tanks_list: List["Tank"]) -> None:
+    def is_bullet_collide_tank(self, tanks_list: List[Union["Tank", "BotTank"]]) -> None:
         """Check if the bullets hit any other tanks."""
         for bullet in self.bullets[:]:
             bullet_rect = pygame.Rect(
@@ -340,13 +306,79 @@ class Tank:
                     self.bullets.remove(bullet)
                     tank.health -= 1
                     if tank.health <= 0:
+                        tanks_list.remove(tank)
                         tank.is_alive = False
-                        tank.img = pygame.image.load(tank.death_asset)
-                        tank.img = pygame.transform.scale(
-                            tank.img, TANK["size"])
-                        tank.img = pygame.transform.rotate(
-                            tank.img, TANK_DIRECTION[tank.direction])
                     break
+
+    def draw(self, screen: pygame.Surface) -> None:
+        """Paint the Tank and Bullets"""
+        # draw the tank according to direction
+        rotated_img = pygame.transform.rotate(
+            self.img, TANK_DIRECTION[self.direction])
+        center = (self.x + self.rect.width / 2, self.y + self.rect.height / 2)
+        rotated_rect = rotated_img.get_rect(center=center)
+        screen.blit(rotated_img, rotated_rect.topleft)
+
+        if self.is_alive:
+            # draw bullets
+            self.update_bullets()
+            for bullet in self.bullets:
+                bullet.move()
+                bullet.draw(screen)
+
+
+class BotEnemy:
+    """BotEnemy object."""
+
+    def __init__(
+        self,
+        x: float,
+        y: float,
+        asset: str = TANK["asset"],
+        death_asset: str = TANK["asset"],
+        health: int = 6,
+    ) -> None:
+        self.x = x
+        self.y = y
+        self.speed = 2
+        self.direction = "UP"
+        self.initial_direction = None
+        self.health = health
+        self.is_alive = True
+
+        self.asset = asset
+        self.death_asset = death_asset
+        self.img = pygame.image.load(self.asset)
+        self.img = pygame.transform.scale(self.img, TANK["enemy_size"])
+        self.rect = self.img.get_rect(topleft=(self.x, self.y))
+
+    def is_colliding_tank(self, new_rect: pygame.Rect, tanks_list: List[Union["Tank", "BotTank"]]) -> bool:
+        """Check if tank's position will collide with other tanks."""
+        for tank in tanks_list:
+            if tank != self and self.is_alive and new_rect.colliderect(tank.rect):
+                return True
+        return False
+
+    def move(self, direction: str, tanks_list: List[Union["Tank", "BotTank"]]) -> None:
+        """Move tank according to direction, with boundary check and collision avoidance."""
+        if self.health <= 0:
+            return
+        self.direction = direction
+        rad_angle = math.radians(TANK_DIRECTION[direction])
+
+        # Calculate potential new position based on direction and speed
+        new_x = self.x + self.speed * math.sin(rad_angle)
+        new_y = self.y + self.speed * math.cos(rad_angle)
+        new_rect = self.rect.copy()
+        new_rect.topleft = (int(new_x), int(new_y))
+
+        # Ensure the new position is within screen boundaries
+        screen_width, screen_height = GAME["screen_size"]
+        if 0 <= new_x <= screen_width - self.rect.width and 0 <= new_y <= screen_height - self.rect.height:
+            # Check if the new position collides with any other tank
+            if not self.is_colliding_tank(new_rect, tanks_list):
+                self.x, self.y = new_x, new_y
+                self.rect.topleft = (int(self.x), int(self.y))
 
     def draw_health_bar(self, screen: pygame.Surface) -> None:
         """Draw the health bar with six boxes above the tank."""
@@ -371,7 +403,7 @@ class Tank:
             pygame.draw.rect(screen, outline_color, box_rect, 2)
 
     def draw(self, screen: pygame.Surface) -> None:
-        """Paint the Tank and Bullets"""
+        """Paint the Tank"""
         # draw the tank according to direction
         rotated_img = pygame.transform.rotate(
             self.img, TANK_DIRECTION[self.direction])
@@ -383,36 +415,25 @@ class Tank:
             # display health bar above tank
             self.draw_health_bar(screen)
 
-            # draw bullets
-            self.update_bullets()
-            for bullet in self.bullets:
-                bullet.move()
-                bullet.draw(screen)
 
-class BotTank(Tank):
+class BotTank(BotEnemy):
     """BotTank object."""
 
     def __init__(
                 self,
                 x: float,
                 y: float,
-                bullet: type[Bullet] = Bullet,
-                reload_time: int = 500,
                 asset: str = TANK["asset"],
                 death_asset: str = TANK["asset"],
                 health: int = 6,
-                bullet_asset: str = BULLET["asset"],
                 movement_interval: int = 2_000
             ) -> None:
         super().__init__(
                 x,
                 y,
-                bullet,
                 asset=asset,
-                reload_time=reload_time,
                 death_asset=death_asset,
                 health=health,
-                bullet_asset=bullet_asset
             )
         self.movement_interval = movement_interval
         self.last_move_time = pygame.time.get_ticks()
@@ -422,59 +443,54 @@ class BotTank(Tank):
         """Get random direction"""
         return random.choice(["UP", "DOWN", "LEFT", "RIGHT"])
 
-    def update_movement(self):
+    def update_movement(self, tanks_list: List[Union["Tank", "BotTank"]]):
         """Change new tank movement, according to movement interval."""
         current_time = pygame.time.get_ticks()
         if current_time - self.last_move_time >= self.movement_interval:
             self.current_direction = self.get_new_direction()
             self.last_move_time = current_time
-        self.move(self.current_direction)
+        self.move(self.current_direction, tanks_list)
 
 
 # setup the game
 pygame.init()
+pygame.font.init()
 screen = pygame.display.set_mode(GAME["screen_size"])
 clock = pygame.time.Clock()
+font = pygame.font.Font(None, 74)
 
 # objects
 player = Tank(
-    x=300,
-    y=200,
+    x=480,
+    y=320,
     asset="assets/imgs/tanks/tank_green.png",
     death_asset="assets/imgs/tanks/tank_green_body.png",
     bullet_asset="assets/imgs/tanks/bullet_green.png",
 )
-bot_1 = BotTank(
-    x=100,
-    y=50,
-    asset="assets/imgs/tanks/tank_red.png",
-    death_asset="assets/imgs/tanks/tank_red_body.png",
-    bullet_asset="assets/imgs/tanks/bullet_red.png",
-    movement_interval=2_000,
-)
-bot_2 = BotTank(
-    x=200,
-    y=50,
-    asset="assets/imgs/tanks/tank_blue.png",
-    death_asset="assets/imgs/tanks/tank_blue_body.png",
-    bullet_asset="assets/imgs/tanks/bullet_blue.png",
-    movement_interval=3_000,
-)
-bot_3 = BotTank(
-    x=300,
-    y=50,
-    asset="assets/imgs/tanks/tank_sand.png",
-    death_asset="assets/imgs/tanks/tank_sand_body.png",
-    bullet_asset="assets/imgs/tanks/bullet_sand.png",
-    movement_interval=2_500,
-)
+bot_tanks: List["BotTank"] = []
+for t in range(random.choice([25, 50, 100])):
+    bot = BotTank(
+            x=random.randint(100, 900),
+            y=random.randint(100, 500),
+            health=1,
+            asset="assets/imgs/tanks/tank_red.png",
+            death_asset="assets/imgs/tanks/tank_red_body.png",
+            movement_interval=random.choice([1_000, 1_200, 500, 800, 1_500]),
+        )
+    bot_tanks.append(bot)
 
-all_tanks = [bot_1, bot_2, bot_3, player]
+all_tanks: List[Union["Tank", "BotTank"]] = [player]
+all_tanks.extend(bot_tanks)
 
 
-def sort_alive_tanks_on_last(t: "Tank"):
+def sort_alive_tanks_on_last(t: Union["Tank", "BotTank"]):
     return t.is_alive
 
+def is_player_won(bot_tanks: List[BotTank]):
+    return all(not bot.is_alive for bot in bot_tanks)
+
+start_timer = pygame.time.get_ticks()
+end_timer: Union[int, None] = None
 
 # game loop
 RUNNING = True
@@ -489,10 +505,11 @@ while RUNNING:
     """
     Player actions
     """
-    player.move_on_keypress(keys, all_tanks)
-    if keys[pygame.K_SPACE]:
-        player.shoot()
-    player.check_bullet_collision(all_tanks)
+    if not is_player_won(bot_tanks):
+        player.move_on_keypress(keys, all_tanks)
+        if keys[pygame.K_SPACE]:
+            player.shoot()
+        player.is_bullet_collide_tank(all_tanks)
 
     """
     Screen painting
@@ -507,8 +524,28 @@ while RUNNING:
     all_tanks.sort(key=sort_alive_tanks_on_last)
     for tank in all_tanks:
         if isinstance(tank, BotTank):
-            tank.update_movement()
+            tank.update_movement(all_tanks)
         tank.draw(screen)
+
+    """
+    Game ending
+    """
+    if is_player_won(bot_tanks):
+        if end_timer is None:
+            end_timer = pygame.time.get_ticks()
+
+        # show winning screen
+        text_surface = font.render("You Won!", True, (255, 255, 255))
+        text_rect = text_surface.get_rect(center=(GAME["screen_size"][0] // 2, GAME["screen_size"][1] // 2))
+        screen.blit(text_surface, text_rect)
+
+        # show record
+        if start_timer and end_timer:
+            elapsed_time = (end_timer - start_timer) / 1_000  # Convert milliseconds to seconds
+            time_text = f"Time: {elapsed_time:.2f} seconds"
+            time_surface = font.render(time_text, True, (255, 255, 255))
+            time_rect = time_surface.get_rect(center=(GAME["screen_size"][0] // 2, GAME["screen_size"][1] // 2 + 40))
+            screen.blit(time_surface, time_rect)
 
     """
     Wrap-Ups
