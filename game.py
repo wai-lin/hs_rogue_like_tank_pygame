@@ -3,15 +3,22 @@ Tank game
 """
 
 import math
+import os
 import random
-from typing import List, Union
+import json
+from datetime import datetime
+from typing import Dict, List, Tuple, Union, cast
 import pygame
+from pygame.font import Font
 
 
 # game config
 GAME = {
     "screen_size": (64 * 15, 64 * 10),
     "background": (0, 0, 0),
+    "font": "assets/fonts/jersey_10/jersey10.ttf",
+    "bot_counts": [40, 60, 80],
+    "bot_intervals": [1_000, 1_200, 500, 800, 1_500],
 }
 
 BULLET = {
@@ -452,12 +459,55 @@ class BotTank(BotEnemy):
         self.move(self.current_direction, tanks_list)
 
 
+# high scores
+HighScoreEntry = Dict[str, Union[float, str]]
+HighScores = List[HighScoreEntry]
+
+HIGH_SCORE_FILE="high_scores.json"
+MAX_RECORDS = 5
+
+def load_high_scores() -> HighScores:
+    """Load all highscores"""
+    if os.path.exists(HIGH_SCORE_FILE):
+        with open(HIGH_SCORE_FILE, "r") as file:
+            data = json.load(file)
+            return cast(HighScores, data.get("high_scores", []))
+    return []
+
+def save_high_scores(new_score: float):
+    """Save high score record in json file"""
+    high_scores = load_high_scores()
+    new_entry: HighScoreEntry = { "score": new_score, "timestamp": datetime.now().isoformat() }
+    high_scores.append(new_entry)
+    # record only latest records no more than MAX_RECORDS
+    high_scores = sorted(high_scores, key=lambda entry: entry["timestamp"], reverse=True)[:MAX_RECORDS]
+
+    with open(HIGH_SCORE_FILE, "w") as file:
+        json.dump({"high_scores": high_scores}, file, indent=4)
+
+def get_best_high_score(high_scores: HighScores) -> HighScoreEntry:
+    return min(high_scores, key=lambda entry: entry["score"]) if high_scores else { "score": 0.0, "timestamp": "" }
+
+def draw_text_with_outline(text: str, font: Font, color: Tuple[int, int, int], outline_color: Tuple[int, int, int], position: Tuple[int, int]):
+    outline_positions = [
+        (position[0] - 1, position[1] - 1),
+        (position[0] + 1, position[1] - 1),
+        (position[0] - 1, position[1] + 1),
+        (position[0] + 1, position[1] + 1),
+    ]
+    for pos in outline_positions:
+        outline_surface = font.render(text, True, outline_color)
+        screen.blit(outline_surface, pos)
+    text_surface = font.render(text, True, color)
+    screen.blit(text_surface, position)
+
 # setup the game
 pygame.init()
 pygame.font.init()
 screen = pygame.display.set_mode(GAME["screen_size"])
 clock = pygame.time.Clock()
-font = pygame.font.Font(None, 74)
+title_font = pygame.font.Font(GAME["font"], 74)
+text_font = pygame.font.Font(GAME["font"], 40)
 
 # objects
 player = Tank(
@@ -466,16 +516,17 @@ player = Tank(
     asset="assets/imgs/tanks/tank_green.png",
     death_asset="assets/imgs/tanks/tank_green_body.png",
     bullet_asset="assets/imgs/tanks/bullet_green.png",
+    reload_time=300,
 )
 bot_tanks: List["BotTank"] = []
-for t in range(random.choice([25, 50, 100])):
+for t in range(random.choice(GAME["bot_counts"])):
     bot = BotTank(
             x=random.randint(100, 900),
             y=random.randint(100, 500),
             health=1,
             asset="assets/imgs/tanks/tank_red.png",
             death_asset="assets/imgs/tanks/tank_red_body.png",
-            movement_interval=random.choice([1_000, 1_200, 500, 800, 1_500]),
+            movement_interval=random.choice(GAME["bot_intervals"]),
         )
     bot_tanks.append(bot)
 
@@ -489,6 +540,10 @@ def sort_alive_tanks_on_last(t: Union["Tank", "BotTank"]):
 def is_player_won(bot_tanks: List[BotTank]):
     return all(not bot.is_alive for bot in bot_tanks)
 
+# high scores
+is_high_score_save = False
+high_scores = load_high_scores()
+best_high_score = float(get_best_high_score(high_scores)["score"])
 start_timer = pygame.time.get_ticks()
 end_timer: Union[int, None] = None
 
@@ -531,21 +586,45 @@ while RUNNING:
     Game ending
     """
     if is_player_won(bot_tanks):
+        elapsed_time = 0.0
+
         if end_timer is None:
             end_timer = pygame.time.get_ticks()
 
-        # show winning screen
-        text_surface = font.render("You Won!", True, (255, 255, 255))
-        text_rect = text_surface.get_rect(center=(GAME["screen_size"][0] // 2, GAME["screen_size"][1] // 2))
-        screen.blit(text_surface, text_rect)
-
-        # show record
         if start_timer and end_timer:
             elapsed_time = (end_timer - start_timer) / 1_000  # Convert milliseconds to seconds
-            time_text = f"Time: {elapsed_time:.2f} seconds"
-            time_surface = font.render(time_text, True, (255, 255, 255))
-            time_rect = time_surface.get_rect(center=(GAME["screen_size"][0] // 2, GAME["screen_size"][1] // 2 + 40))
-            screen.blit(time_surface, time_rect)
+
+            if elapsed_time < best_high_score:
+                best_high_score = elapsed_time
+            if not is_high_score_save:
+                is_high_score_save = True
+                save_high_scores(elapsed_time)
+
+        # show winning screen
+        text_surface = title_font.render("You Won!", True, (0, 0, 128))
+        text_rect = text_surface.get_rect(center=(GAME["screen_size"][0] // 2, GAME["screen_size"][1] // 2 - 100))
+        screen.blit(text_surface, text_rect)
+
+
+        time_text = f"HighScore: {elapsed_time:.2f} seconds"
+        time_surface = title_font.render(time_text, True, (0, 0, 128))
+        time_rect = time_surface.get_rect(center=(GAME["screen_size"][0] // 2, GAME["screen_size"][1] // 2 + - 40))
+        screen.blit(time_surface, time_rect)
+
+        # list high scores
+        for i, high_score in enumerate(high_scores):
+            timestamp = datetime.fromisoformat(str(high_score["timestamp"]))
+            formatted_timestamp = timestamp.strftime("%d-%m-%Y %I:%M %p") # Format to "DD-MM-YYYY HH:MM AM/PM"
+
+            high_score_text = f"#{i+1} {formatted_timestamp}: {high_score['score']:.2f} seconds"
+            high_score_surface = text_font.render(high_score_text, True, (0, 0, 128))
+            draw_text_with_outline(
+                    text=high_score_text,
+                    font=text_font,
+                    color=(255, 255, 255),
+                    outline_color=(60, 60, 60),
+                    position=(GAME["screen_size"][0] // 4, GAME["screen_size"][1] // 2 + 40 + i * 30),
+                )
 
     """
     Wrap-Ups
