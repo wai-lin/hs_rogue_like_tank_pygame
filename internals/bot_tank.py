@@ -152,9 +152,9 @@ class MovableBotTank(BotEnemy):
 def generate_bots():
     """Try to generate bots that are not overlap with each other."""
 
-    tank_size_w = BOT_TANK["size"][0]
-    tank_size_h = BOT_TANK["size"][1]
-    bots_count: int = random.choice(GAME["bot_counts"])
+    tank_size_w: int = BOT_TANK["size"][0]
+    tank_size_h: int = BOT_TANK["size"][1]
+    bots_count: int = GAME["bots_count"]
 
     x_coords = (100, 900)
     y_coords = (100, 500)
@@ -199,5 +199,6 @@ def generate_bots():
     return bot_tanks
 
 
-def is_player_won(bot_tanks: List[MovableBotTank]):
+def has_player_won(bot_tanks: List[MovableBotTank]):
+    """Check if player has won the game."""
     return all(not bot.is_alive for bot in bot_tanks)

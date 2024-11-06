@@ -14,10 +14,10 @@ from .high_scores import HighScores
 pygame.mixer.init()
 pygame.font.init()
 
-shooting_sfx = pygame.mixer.Sound(BULLET["shooting_sfx"])
+SHOOTING_SFX = pygame.mixer.Sound(BULLET["shooting_sfx"])
 
-title_font = pygame.font.Font(GAME["font"], 74)
-text_font = pygame.font.Font(GAME["font"], 40)
+TITLE_FONT = pygame.font.Font(GAME["font"], 74)
+TEXT_FONT = pygame.font.Font(GAME["font"], 40)
 
 
 def draw_text_with_outline(
@@ -50,13 +50,13 @@ def draw_game_end_message(
     """End game with final message."""
 
     # show winning screen
-    text_surface = title_font.render("You Won!", True, (0, 0, 128))
+    text_surface = TITLE_FONT.render("You Won!", True, (0, 0, 128))
     text_rect = text_surface.get_rect(
         center=(GAME["screen_size"][0] // 2, GAME["screen_size"][1] // 2 - 100))
     screen.blit(text_surface, text_rect)
 
     time_text = f"HighScore: {elapsed_time:.2f} seconds"
-    time_surface = title_font.render(time_text, True, (0, 0, 128))
+    time_surface = TITLE_FONT.render(time_text, True, (0, 0, 128))
     time_rect = time_surface.get_rect(
         center=(GAME["screen_size"][0] // 2, GAME["screen_size"][1] // 2 + - 40))
     screen.blit(time_surface, time_rect)
@@ -72,7 +72,7 @@ def draw_game_end_message(
         high_score_text = f"{label_text} : {score_text}"
         draw_text_with_outline(
             text=high_score_text,
-            font=text_font,
+            font=TEXT_FONT,
             color=(255, 255, 255),
             outline_color=(60, 60, 60),
             position=(GAME["screen_size"][0] // 4,

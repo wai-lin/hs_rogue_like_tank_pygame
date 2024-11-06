@@ -6,8 +6,8 @@ GAME = {
     "screen_size": (64 * 15, 64 * 10),
     "background": (0, 0, 0),
     "font": "assets/fonts/jersey_10/jersey10.ttf",
-    "bot_counts": [40, 60, 80],
-    "bot_intervals": [1_000, 1_200, 500, 800, 1_500],
+    "bots_count": 80,
+    "bot_intervals": [1_000, 1_200, 800, 500, 300],
 }
 
 BULLET = {
@@ -24,8 +24,9 @@ BULLET_DIRECTION = {
 }
 
 PLAYER_TANK = {
-    "asset": "assets/imgs/tanks/tank_dark.png",
-    "death_asset": "assets/imgs/tanks/tank_dark_body.png",
+    "asset": "assets/imgs/tanks/tank_blue.png",
+    "death_asset": "assets/imgs/tanks/tank_blue_body.png",
+    "bullet_asset": "assets/imgs/tanks/bullet_blue.png",
     "size": (42, 46),
     "enemy_size": (31, 33),
 }

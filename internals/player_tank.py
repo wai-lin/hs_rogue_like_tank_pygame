@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, List, Union
 
 import pygame
 
-from .effects import shooting_sfx
+from .effects import SHOOTING_SFX
 from .bullet import Bullet
 from .game_configs import GAME, PLAYER_TANK, TANK_DIRECTION, BULLET
 
@@ -120,7 +120,7 @@ class PlayerTank:
     def shoot(self) -> None:
         """Shoot the bullet"""
         if self.can_shoot():
-            shooting_sfx.play()
+            SHOOTING_SFX.play()
 
             bullet_center_x = self.x
             bullet_center_y = self.y

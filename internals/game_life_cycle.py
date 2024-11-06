@@ -6,9 +6,9 @@ from typing import List, Union
 
 import pygame
 
-from .game_configs import GAME
+from .game_configs import GAME, PLAYER_TANK
 from .player_tank import PlayerTank
-from .bot_tank import generate_bots, MovableBotTank, is_player_won
+from .bot_tank import generate_bots, MovableBotTank, has_player_won
 from .high_scores import load_high_scores, get_best_high_score, save_high_scores
 from .map_generator import draw_map
 from .effects import draw_game_end_message
@@ -27,9 +27,9 @@ def game_life_cycle():
     player_tank = PlayerTank(
         x=480,
         y=320,
-        asset="assets/imgs/tanks/tank_green.png",
-        death_asset="assets/imgs/tanks/tank_green_body.png",
-        bullet_asset="assets/imgs/tanks/bullet_green.png",
+        asset=PLAYER_TANK["asset"],
+        death_asset=PLAYER_TANK["death_asset"],
+        bullet_asset=PLAYER_TANK["bullet_asset"],
         reload_time=300,
     )
     bot_tanks: List["MovableBotTank"] = generate_bots()
@@ -49,11 +49,11 @@ def game_life_cycle():
             if event.type is pygame.QUIT:
                 is_game_running = False
 
-        has_player_won = is_player_won(bot_tanks)
+        is_player_won = has_player_won(bot_tanks)
 
         # """Process player tank actions."""
         player_pressed_keys = pygame.key.get_pressed()
-        if not has_player_won:
+        if not is_player_won:
             player_tank.move_on_keypress(player_pressed_keys, all_tanks)
             if player_pressed_keys[pygame.K_SPACE]:
                 player_tank.shoot()
@@ -72,7 +72,7 @@ def game_life_cycle():
             tank.draw(screen)
 
         # """Game finished"""
-        if has_player_won:
+        if is_player_won:
             elapsed_time = 0.0
 
             if end_timer is None:
