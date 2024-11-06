@@ -1,0 +1,27 @@
+- [ ] Tank movement
+  - [x] 4 directions
+  - [x] tanks collide each other
+  - [ ] tanks leave out trails for 3s don't render the trail while the tank is not moving
+- [x] Tank shoot bullet
+  - [x] change bullet direction according to tank direction
+  - [x] bullet hit tanks
+- [x] Tank health system
+  - [x] health scoring
+  - [x] health bar
+  - [x] change tank death assets
+- [ ] Map
+  - [x] map boundary on edges
+  - [x] generate fixed tile map
+  - [ ] place obsticles, building
+  - [ ] destroyable obsticles
+- [x] Bot
+  - [x] generate enemy bot targets
+  - [x] move bots in random direction with random intervals
+- [x] Scoring system
+  - [x] show time taken to take down all bot tanks
+  - [x] record the last 5 scores in json file
+- [ ] Game Modes
+  - [ ] Easy (less tanks and slow movement speed)
+  - [ ] Normal (morderate tanks and decent movement speed)
+  - [ ] Hard (a lot of tanks and fast movement speed)
+  - [ ] Insane (same tanks as hard mode but insane speed tanks)

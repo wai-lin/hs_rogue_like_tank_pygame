@@ -1,24 +1,5 @@
-- [ ] Tank movement
-  - [x] 4 directions
-  - [x] diagonal movement
-  - [x] face to initial direction while moving diagonally
-  - [x] tanks collide each other
-  - [ ] tanks leave out trails for 3s don't render the trail while the tank is not moving
-- [x] Tank shoot bullet
-  - [x] change direction according to tank direction
-  - [x] bullet hit tanks
-- [x] Tank health system
-  - [x] health scoring
-  - [x] health bar
-  - [x] change tank death assets
-- [ ] Map
-  - [x] map boundary on edges
-  - [x] generate fixed tile map
-  - [ ] place obsticles, building
-  - [ ] obsticles can be damaged
-- [ ] Multiplayer
-  - [ ] web-socket
-  - [ ] 4 players max
-  - [ ] enter lobby with unique lobby number
-- [ ] Bot
-  - [ ] enemy bot players
+# Rogue-Like Tank shooting game
+
+The goal of the game is to shoot all the red tanks as quick as possible.
+The time taken will be saved as high score in a file.
+It's a party game to play with friends trying to beat each other's high scores.
