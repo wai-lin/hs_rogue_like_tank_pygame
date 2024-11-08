@@ -141,7 +141,11 @@ class PlayerTank:
                 bullet_center_y = self.y + (1.4 * y_shift)
 
             bullet = self.bullet(
-                bullet_center_x, bullet_center_y, self.direction, asset=self.bullet_asset)
+                bullet_center_x,
+                bullet_center_y,
+                self.direction,
+                asset=self.bullet_asset
+            )
             self.bullets.append(bullet)
             self.last_shot_time = pygame.time.get_ticks()
 
@@ -177,7 +181,9 @@ class PlayerTank:
         """Paint the Tank and Bullets"""
         # draw the tank according to direction
         rotated_img = pygame.transform.rotate(
-            self.img, TANK_DIRECTION[self.direction])
+            self.img,
+            TANK_DIRECTION[self.direction]
+        )
         center = (self.x + self.rect.width / 2, self.y + self.rect.height / 2)
         rotated_rect = rotated_img.get_rect(center=center)
         screen.blit(rotated_img, rotated_rect.topleft)
