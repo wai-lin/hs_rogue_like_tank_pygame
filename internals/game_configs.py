@@ -6,7 +6,7 @@ GAME = {
     "screen_size": (64 * 15, 64 * 10),
     "background": (0, 0, 0),
     "font": "assets/fonts/jersey_10/jersey10.ttf",
-    "bots_count": 60,
+    "bots_count": 30,
     "bot_intervals": [1_000, 1_200, 800, 500, 300],
 }
 

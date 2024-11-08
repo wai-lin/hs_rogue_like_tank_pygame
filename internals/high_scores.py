@@ -19,8 +19,11 @@ def load_high_scores() -> HighScores:
     """Load all highscores"""
     if os.path.exists(HIGH_SCORE_FILE):
         with open(HIGH_SCORE_FILE, "r", encoding="utf-8") as file:
-            data = json.load(file)
-            return cast(HighScores, data.get("high_scores", []))
+            try:
+                data = json.load(file)
+                return cast(HighScores, data.get("high_scores", []))
+            except json.JSONDecodeError as e:
+                print("Invalid JSON syntax:", e)
     return []
 
 
@@ -37,7 +40,10 @@ def save_high_scores(new_score: float):
         high_scores, key=lambda entry: entry["timestamp"], reverse=True)[:MAX_RECORDS]
 
     with open(HIGH_SCORE_FILE, "w", encoding="utf-8") as file:
-        json.dump({"high_scores": high_scores}, file, indent=4)
+        try:
+            json.dump({"high_scores": high_scores}, file, indent=4)
+        except TypeError:
+            print("Unable to serialize the object")
 
 
 def get_best_high_score(high_scores: HighScores) -> HighScoreEntry:

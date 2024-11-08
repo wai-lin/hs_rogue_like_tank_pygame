@@ -55,7 +55,7 @@ def draw_game_end_message(
         center=(GAME["screen_size"][0] // 2, GAME["screen_size"][1] // 2 - 100))
     screen.blit(text_surface, text_rect)
 
-    time_text = f"HighScore: {elapsed_time:.2f} seconds"
+    time_text = f"Your score: {elapsed_time:.2f} seconds"
     time_surface = TITLE_FONT.render(time_text, True, (0, 0, 128))
     time_rect = time_surface.get_rect(
         center=(GAME["screen_size"][0] // 2, GAME["screen_size"][1] // 2 + - 40))
