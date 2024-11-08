@@ -14,12 +14,17 @@
   - [x] generate fixed tile map
   - [ ] place obsticles, building
   - [ ] destroyable obsticles
+  - [ ] random map generation
+    - [ ] road generation
+    - [ ] obsticals and buildings generation
 - [x] Bot
   - [x] generate enemy bot targets
   - [x] move bots in random direction with random intervals
-- [x] Scoring system
+  - [ ] player take damage when collide with bots
+- [ ] Scoring system
   - [x] show time taken to take down all bot tanks
   - [x] record the last 5 scores in json file
+  - [ ] starts the game with count-down
 - [ ] Game Modes
   - [ ] Easy (less tanks and slow movement speed)
   - [ ] Normal (morderate tanks and decent movement speed)
